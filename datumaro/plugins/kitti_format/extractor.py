@@ -7,7 +7,7 @@ import os.path as osp
 
 import numpy as np
 
-from datumaro.components.annotation import Bbox, LabelCategories, Mask
+from datumaro.components.annotation import BBox2dCuboid3d, LabelCategories, Mask
 from datumaro.components.extractor import AnnotationType, DatasetItem, SourceExtractor
 from datumaro.components.media import Image
 from datumaro.util.image import find_images, load_image
@@ -108,8 +108,13 @@ class _KittiExtractor(SourceExtractor):
                     line = line.split()
                     assert len(line) == 15 or len(line) == 16
 
+                    alpha = float(line[3])
                     x1, y1 = float(line[4]), float(line[5])
                     x2, y2 = float(line[6]), float(line[7])
+
+                    h, w, l, = float(line[8]), float(line[9]), float(line[10])
+                    x, y, z = float(line[11]), float(line[12]), float(line[13])
+                    rotation_y = float(line[14])
 
                     attributes = {}
                     attributes["truncated"] = float(line[1]) != 0
@@ -123,11 +128,16 @@ class _KittiExtractor(SourceExtractor):
                         label_id = self.categories()[AnnotationType.label].add(line[0])
 
                     anns.append(
-                        Bbox(
+                        BBox2dCuboid3d(
                             x=x1,
                             y=y1,
                             w=x2 - x1,
                             h=y2 - y1,
+                            alpha=alpha,
+                            position=[x, y, z],
+                            scale=[h, w, l],
+                            rotation=[-1, rotation_y, -1],
+                            rotation_y=rotation_y,
                             id=line_idx,
                             attributes=attributes,
                             label=label_id,

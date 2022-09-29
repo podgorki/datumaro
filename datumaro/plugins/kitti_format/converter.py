@@ -166,7 +166,7 @@ class KittiConverter(Converter):
                         dtype=np.int32,
                     )
 
-                bboxes = [a for a in item.annotations if a.type == AnnotationType.bbox]
+                bboxes = [a for a in item.annotations if a.type == AnnotationType.bbox2d_cuboid_3d]
                 if bboxes and KittiTask.detection in self._tasks:
                     labels_file = osp.join(
                         self._save_dir, subset_name, KittiPath.LABELS_DIR, "%s.txt" % item.id
@@ -182,9 +182,11 @@ class KittiConverter(Converter):
                             label_line[2] = cast(
                                 bbox.attributes.get("occluded"), int, KittiPath.DEFAULT_OCCLUDED
                             )
+                            label_line[3] = bbox.alpha  # alpha
                             x, y, h, w = bbox.get_bbox()
                             label_line[4:8] = x, y, x + h, y + w
-
+                            label_line[8:14] = bbox.get_3d_bbox() # w, h, l, x,y,z in camera coordinates
+                            label_line[15] = bbox.rotation_y  # rotation_y
                             label_line[15] = cast(
                                 bbox.attributes.get("score"), float, KittiPath.DEFAULT_SCORE
                             )

@@ -31,6 +31,7 @@ class AnnotationType(Enum):
     super_resolution_annotation = auto()
     depth_annotation = auto()
     skeleton = auto()
+    bbox2d_cuboid_3d = auto()
 
 
 COORDINATE_ROUNDING_DIGITS = 2
@@ -52,7 +53,7 @@ class Annotation:
     id: int = field(default=0, validator=default_if_none(int))
 
     # Arbitrary annotation-specific attributes. Typically, includes
-    # metainfo and properties that are not covered by other fields.
+    # meta info and properties that are not covered by other fields.
     # If possible, try to limit value types of values by the simple
     # builtin types (int, float, bool, str) to increase compatibility with
     # different formats.
@@ -82,8 +83,8 @@ class Annotation:
 @attrs(slots=True, kw_only=True, order=False)
 class Categories:
     """
-    A base class for annotation metainfo. It is supposed to include
-    dataset-wide metainfo like available labels, label colors,
+    A base class for annotation meta-info. It is supposed to include
+    dataset-wide meta-info like available labels, label colors,
     label attributes etc.
     """
 
@@ -669,6 +670,80 @@ class Bbox(_Shape):
         d = {"x": item.x, "y": item.y, "w": item.w, "h": item.h}
         d.update(kwargs)
         return attr.evolve(item, **d)
+
+
+@attrs(slots=True, init=False, order=False)
+class BBox2dCuboid3d(Annotation):
+    _type = AnnotationType.bbox2d_cuboid_3d
+    _points: List[float] = field(default=None)
+    label: Optional[int] = field(
+        converter=attr.converters.optional(int), default=None, kw_only=True
+    )
+
+    def __init__(self, x, y, w, h, alpha, position, rotation=None, scale=None, *args, **kwargs):
+        super().__init__()
+        self.bbox = Bbox(x, y, w, h, *args, **kwargs)
+        self.cuboid = Cuboid3d(position, rotation, scale, **kwargs)
+        self.__attrs_init__(points=[alpha], **kwargs)
+
+    @property
+    def x(self):
+        return self.bbox.x
+
+    @property
+    def y(self):
+        return self.bbox.y
+
+    @property
+    def w(self):
+        return self.w
+
+    @property
+    def h(self):
+        return self.h
+
+    @property
+    def alpha(self):
+        return self._points[0]
+
+    @alpha.setter
+    def _set_alpha(self, value):
+        self._points[0] = value
+
+    @property
+    def rotation_y(self):
+        return self._points[1]
+
+    @rotation_y.setter
+    def _set_rotation_y(self, value):
+        self._points[1] = value
+
+    @property
+    def position(self):
+        """[x, y, z]"""
+        return self.cuboid.position
+
+    @property
+    def rotation(self):
+        """[rx, ry, rz]"""
+        return self.cuboid.rotation
+
+    @property
+    def scale(self):
+        """[sx, sy, sz]"""
+        return self.cuboid.scale
+
+    def get_bbox(self):
+        return self.bbox.get_bbox()
+
+    def get_area(self):
+        return self.bbox.get_area()
+
+    def as_polygon(self):
+        return self.bbox.as_polygon()
+
+    def iou(self, other):
+        return self.bbox.iou(other)
 
 
 @attrs(slots=True, order=False)
