@@ -673,7 +673,7 @@ class Bbox(_Shape):
 
 
 @attrs(slots=True, init=False, order=False)
-class BBox2dCuboid3d(Annotation):
+class BBox2dCuboid3d(_Shape):
     _type = AnnotationType.bbox2d_cuboid_3d
     _points: List[float] = field(default=None)
     label: Optional[int] = field(
